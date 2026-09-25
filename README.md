@@ -16,7 +16,7 @@
 
 <!-- ══════════ NEON BADGES ══════════ -->
 <p>
-  <img src="https://img.shields.io/badge/⚡_VERSION-1.0.0-FF1493?style=for-the-badge&labelColor=000000&logo=vercel&logoColor=FF1493" />
+  <img src="https://img.shields.io/badge/⚡_VERSION-1.0.1-FF1493?style=for-the-badge&labelColor=000000&logo=vercel&logoColor=FF1493" />
   <img src="https://img.shields.io/badge/📜_LICENSE-MIT-8A2BE2?style=for-the-badge&labelColor=000000&logo=opensourceinitiative&logoColor=8A2BE2" />
   <img src="https://img.shields.io/badge/🔧_NODE-%3E%3D_18-00FFFF?style=for-the-badge&labelColor=000000&logo=nodedotjs&logoColor=00FFFF" />
 </p>
