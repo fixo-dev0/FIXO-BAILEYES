@@ -1,0 +1,541 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FIXO-BAILEYS — WhatsApp Web API</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💗</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    box-sizing:border-box;
+    --bg:#0a0410; --bg2:#140a1e; --bg3:#1c0e2a;
+    --pink:#ff2e88; --pink-soft:#ff7ab8; --violet:#b24bff;
+    --text:#f9e9f4; --muted:#c79bc0; --line:rgba(255,120,190,.18);
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Manrope',system-ui,sans-serif; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--pink); color:#1a0512;}
+  h1,h2,h3,.disp{font-family:'Unbounded',system-ui,sans-serif;}
+  a{color:inherit; text-decoration:none;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+  code, .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* background glow */
+  body::before, body::after{
+    content:""; position:fixed; border-radius:50%; filter:blur(90px); z-index:0; pointer-events:none;
+  }
+  body::before{width:520px; height:520px; background:radial-gradient(circle,rgba(255,46,136,.28),transparent 70%); top:-160px; left:-140px;}
+  body::after{width:480px; height:480px; background:radial-gradient(circle,rgba(178,75,255,.22),transparent 70%); bottom:-140px; right:-120px;}
+
+  /* loading screen */
+  #loader{
+    position:fixed; inset:0; z-index:999; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px;
+    transition:opacity .6s ease, visibility .6s ease;
+  }
+  #loader.hide{opacity:0; visibility:hidden; pointer-events:none;}
+  .load-mark{font-size:15px; letter-spacing:.4px; color:var(--muted);}
+  .load-word{font-size:clamp(28px,6vw,44px); font-weight:800; letter-spacing:.5px;
+    background:linear-gradient(100deg,var(--pink-soft),var(--pink) 45%,var(--violet));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:pulse 1.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:.55; letter-spacing:.5px;} 50%{opacity:1; letter-spacing:2px;}}
+  .load-bar{width:190px; height:3px; border-radius:3px; background:rgba(255,255,255,.08); overflow:hidden;}
+  .load-bar span{display:block; height:100%; width:40%; background:linear-gradient(90deg,var(--pink),var(--violet)); animation:slide 1s ease-in-out infinite;}
+  @keyframes slide{0%{transform:translateX(-120%);} 100%{transform:translateX(360%);}}
+
+  /* nav */
+  header{position:sticky; top:0; z-index:50; backdrop-filter:blur(14px); background:rgba(10,4,16,.72); border-bottom:1px solid var(--line);}
+  nav.wrap{display:flex; align-items:center; justify-content:space-between; height:66px;}
+  .logo{display:flex; align-items:center; gap:9px; font-family:'Unbounded'; font-weight:600; font-size:16px;}
+  .logo .dot{width:9px; height:9px; border-radius:50%; background:var(--pink); box-shadow:0 0 10px var(--pink);}
+  .navlinks{display:flex; gap:4px; list-style:none; margin:0; padding:0;}
+  .navlinks a{padding:9px 14px; border-radius:20px; font-size:14px; font-weight:500; color:var(--muted); transition:.2s;}
+  .navlinks a:hover{color:var(--text);}
+  .navlinks a.active{color:var(--text); background:rgba(255,46,136,.14); border:1px solid var(--line);}
+  #navToggle{display:none; background:none; border:1px solid var(--line); color:var(--text); border-radius:10px; padding:8px 10px; font-size:18px;}
+
+  main{position:relative; z-index:1; min-height:70vh;}
+  .page{display:none; animation:fadein .5s ease;}
+  .page.active{display:block;}
+  @keyframes fadein{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+  /* home hero */
+  .hero{padding:86px 0 58px; text-align:center;}
+  .eyebrow{display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--pink-soft); border:1px solid var(--line); padding:6px 14px; border-radius:20px; margin-bottom:26px;}
+  .eyebrow .dot{width:6px; height:6px; border-radius:50%; background:#4ee08a; box-shadow:0 0 8px #4ee08a;}
+  .hero h1{font-size:clamp(40px,7.4vw,78px); line-height:1.02; margin:0 0 18px; font-weight:800;
+    background:linear-gradient(110deg,#fff 10%,var(--pink-soft) 55%,var(--violet));
+    -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .hero p{max-width:560px; margin:0 auto 34px; color:var(--muted); font-size:17px; line-height:1.6;}
+  .cta-row{display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+  .btn{padding:13px 26px; border-radius:12px; font-weight:700; font-size:14.5px; border:1px solid transparent; cursor:pointer; transition:.2s; display:inline-flex; align-items:center; gap:8px;}
+  .btn-primary{background:linear-gradient(100deg,var(--pink),var(--violet)); color:#fff; box-shadow:0 8px 26px rgba(255,46,136,.3);}
+  .btn-primary:hover{transform:translateY(-2px);}
+  .btn-ghost{border-color:var(--line); color:var(--text); background:rgba(255,255,255,.03);}
+  .btn-ghost:hover{border-color:var(--pink-soft);}
+
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin:56px 0 0;}
+  .stat{background:var(--bg2); padding:26px 14px; text-align:center;}
+  .stat b{display:block; font-family:'Unbounded'; font-size:22px; color:var(--pink-soft); margin-bottom:4px;}
+  .stat span{font-size:12.5px; color:var(--muted);}
+
+  section{padding:70px 0;}
+  .sec-head{max-width:620px; margin:0 0 42px;}
+  .sec-head .tag{color:var(--pink-soft); font-size:13px; font-weight:700; margin-bottom:8px; display:block;}
+  .sec-head h2{font-size:clamp(26px,4vw,36px); margin:0 0 10px;}
+  .sec-head p{color:var(--muted); font-size:15px; line-height:1.6; margin:0;}
+
+  /* feature grid */
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  .card{background:var(--bg2); border:1px solid var(--line); border-radius:16px; padding:22px; transition:.25s;}
+  .card:hover{border-color:var(--pink-soft); transform:translateY(-3px);}
+  .card .ic{width:38px; height:38px; border-radius:10px; background:rgba(255,46,136,.14); display:flex; align-items:center; justify-content:center; margin-bottom:14px; color:var(--pink-soft);}
+  .card h3{font-size:16px; margin:0 0 6px; font-family:'Manrope'; font-weight:800;}
+  .card p{font-size:13.5px; color:var(--muted); margin:0; line-height:1.55;}
+
+  /* code block */
+  .code{background:#0e0616; border:1px solid var(--line); border-radius:14px; overflow:hidden; margin:18px 0;}
+  .code-head{display:flex; gap:6px; padding:10px 14px; border-bottom:1px solid var(--line);}
+  .code-head i{width:9px; height:9px; border-radius:50%; background:#4a2a44;}
+  .code pre{margin:0; padding:18px; overflow-x:auto; font-size:12.8px; line-height:1.65; color:#f3d6e8;}
+  .code pre .k{color:var(--pink-soft);} .code pre .s{color:#9be3c9;} .code pre .c{color:#7a5f78;}
+
+  .tabs{display:flex; gap:8px; margin-bottom:2px;}
+  .tab{padding:8px 16px; border-radius:9px 9px 0 0; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; border:1px solid var(--line); border-bottom:none; background:var(--bg2);}
+  .tab.on{color:var(--text); background:#0e0616;}
+
+  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:13.5px;}
+  th,td{text-align:left; padding:12px 14px; border-bottom:1px solid var(--line);}
+  th{color:var(--pink-soft); font-size:12px; text-transform:uppercase; letter-spacing:.4px;}
+  td{color:var(--muted);}
+  td code{color:var(--pink-soft);}
+
+  .note{background:rgba(255,46,136,.06); border:1px solid var(--line); border-left:3px solid var(--pink); border-radius:10px; padding:14px 18px; margin:22px 0; font-size:13.5px; color:var(--muted); line-height:1.65;}
+  .note b{color:var(--text);}
+
+  .connect-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px;}
+  .conn-card{background:var(--bg2); border:1px solid var(--line); border-radius:16px; padding:24px; display:flex; align-items:center; gap:16px; transition:.2s;}
+  .conn-card:hover{border-color:var(--pink-soft); transform:translateY(-2px);}
+  .conn-card .ic{width:46px; height:46px; border-radius:12px; background:linear-gradient(135deg,rgba(255,46,136,.22),rgba(178,75,255,.22)); display:flex; align-items:center; justify-content:center; color:var(--pink-soft); flex-shrink:0;}
+  .conn-card h3{margin:0 0 3px; font-size:15px;}
+  .conn-card span{font-size:13px; color:var(--muted); word-break:break-word;}
+
+  footer{border-top:1px solid var(--line); padding:32px 0; text-align:center; color:var(--muted); font-size:13px; position:relative; z-index:1;}
+  footer .flinks{display:flex; gap:18px; justify-content:center; margin-bottom:14px; flex-wrap:wrap;}
+  footer .flinks a{color:var(--muted);} footer .flinks a:hover{color:var(--pink-soft);}
+
+  /* AI floating button + panel */
+  #aiBtn{
+    position:fixed; bottom:calc(24px + env(safe-area-inset-bottom,0px)); right:24px; z-index:80;
+    width:58px; height:58px; border-radius:50%; border:none; cursor:pointer;
+    background:linear-gradient(135deg,var(--pink),var(--violet)); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 28px rgba(255,46,136,.45); animation:floaty 3s ease-in-out infinite;
+  }
+  @keyframes floaty{0%,100%{transform:translateY(0);} 50%{transform:translateY(-7px);}}
+  #aiBtn::before{content:""; position:absolute; inset:-6px; border-radius:50%; border:1px solid var(--pink-soft); opacity:.5; animation:ring 2.2s ease-out infinite;}
+  @keyframes ring{0%{transform:scale(.9); opacity:.6;} 100%{transform:scale(1.5); opacity:0;}}
+
+  #aiPanel{
+    position:fixed; bottom:calc(92px + env(safe-area-inset-bottom,0px)); right:24px; z-index:81;
+    width:min(360px, calc(100vw - 32px)); height:min(480px, 68vh);
+    background:var(--bg2); border:1px solid var(--line); border-radius:18px; overflow:hidden;
+    display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.5);
+    transform:translateY(16px) scale(.97); opacity:0; visibility:hidden; pointer-events:none;
+    transition:.25s ease;
+  }
+  #aiPanel.open{transform:translateY(0) scale(1); opacity:1; visibility:visible; pointer-events:auto;}
+  .ai-head{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line); background:rgba(255,46,136,.06);}
+  .ai-head .t{display:flex; align-items:center; gap:9px; font-weight:800; font-size:14.5px; font-family:'Unbounded';}
+  .ai-head .t .pulse{width:8px; height:8px; border-radius:50%; background:#4ee08a; box-shadow:0 0 8px #4ee08a;}
+  .ai-head button{background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer;}
+  #aiMsgs{flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;}
+  .msg{max-width:82%; padding:10px 13px; border-radius:14px; font-size:13.5px; line-height:1.5;}
+  .msg.bot{align-self:flex-start; background:rgba(255,255,255,.05); border:1px solid var(--line); border-bottom-left-radius:4px;}
+  .msg.user{align-self:flex-end; background:linear-gradient(120deg,var(--pink),var(--violet)); color:#fff; border-bottom-right-radius:4px;}
+  .msg.typing{display:flex; gap:4px; align-items:center; padding:12px 14px;}
+  .msg.typing i{width:6px; height:6px; border-radius:50%; background:var(--pink-soft); animation:tb 1.1s infinite;}
+  .msg.typing i:nth-child(2){animation-delay:.15s;} .msg.typing i:nth-child(3){animation-delay:.3s;}
+  @keyframes tb{0%,60%,100%{opacity:.3; transform:translateY(0);} 30%{opacity:1; transform:translateY(-3px);}}
+  #aiForm{display:flex; gap:8px; padding:12px; border-top:1px solid var(--line);}
+  #aiInput{flex:1; background:var(--bg); border:1px solid var(--line); color:var(--text); border-radius:10px; padding:10px 12px; font-size:13.5px; font-family:inherit;}
+  #aiInput:focus{outline:none; border-color:var(--pink-soft);}
+  #aiForm button{background:linear-gradient(120deg,var(--pink),var(--violet)); border:none; color:#fff; width:38px; border-radius:10px; cursor:pointer; font-size:15px;}
+
+  @media (max-width:760px){
+    .navlinks{position:fixed; top:66px; left:0; right:0; background:var(--bg2); flex-direction:column; padding:10px; border-bottom:1px solid var(--line); display:none;}
+    .navlinks.show{display:flex;}
+    #navToggle{display:block;}
+    .grid,.connect-grid{grid-template-columns:1fr;}
+    .stats{grid-template-columns:repeat(2,1fr);}
+  }
+  .overflow-x{overflow-x:auto;}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="load-word">FIXO-BAILEYS</div>
+  <div class="load-mark">booting the socket…</div>
+  <div class="load-bar"><span></span></div>
+</div>
+
+<header>
+  <nav class="wrap">
+    <div class="logo"><span class="dot"></span>FIXO-BAILEYS</div>
+    <ul class="navlinks" id="navLinks">
+      <li><a href="#home" data-p="home">Home</a></li>
+      <li><a href="#features" data-p="features">Features</a></li>
+      <li><a href="#install" data-p="install">Install</a></li>
+      <li><a href="#docs" data-p="docs">Docs</a></li>
+      <li><a href="#connect" data-p="connect">Connect</a></li>
+    </ul>
+    <button id="navToggle" aria-label="Menu">☰</button>
+  </nav>
+</header>
+
+<main class="wrap">
+
+  <!-- HOME -->
+  <section class="page" id="page-home">
+    <div class="hero">
+      <div class="eyebrow"><span class="dot"></span> v1.0.1 · live on npm</div>
+      <h1>WhatsApp Web API,<br>rebuilt clean.</h1>
+      <p>FIXO-BAILEYS is a privacy-first fork of Baileys — every hidden tracker stripped out, every background telemetry endpoint killed. A pure, fast messaging engine for Node.js.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://www.npmjs.com/package/fixo-baileys" target="_blank" rel="noopener">View on npm →</a>
+        <a class="btn btn-ghost" href="#install" data-p="install">Get started</a>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>&lt;50ms</b><span>Response time</span></div>
+      <div class="stat"><b>2GB</b><span>Streaming uploads</span></div>
+      <div class="stat"><b>Signal E2E</b><span>Encryption</span></div>
+      <div class="stat"><b>Zero</b><span>Trackers</span></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="page" id="page-features">
+    <div class="sec-head"><span class="tag">FEATURE ARSENAL</span><h2>Everything a WhatsApp bot needs</h2><p>A 100% drop-in replacement for the original Baileys API — same calls, cleaner engine underneath.</p></div>
+    <div class="grid" id="featGrid"></div>
+  </section>
+
+  <!-- INSTALL -->
+  <section class="page" id="page-install">
+    <div class="sec-head"><span class="tag">GET STARTED</span><h2>Install in one line</h2><p>Works with npm, yarn or pnpm. Requires Node.js 20 or newer.</p></div>
+
+    <div class="tabs">
+      <div class="tab on" data-pm="npm">npm</div>
+      <div class="tab" data-pm="yarn">yarn</div>
+      <div class="tab" data-pm="pnpm">pnpm</div>
+    </div>
+    <div class="code"><div class="code-head"><i></i><i></i><i></i></div>
+      <pre id="pmCode">npm install fixo-baileys</pre>
+    </div>
+
+    <table>
+      <tr><th>Requirement</th><th>Version</th></tr>
+      <tr><td>Node.js</td><td>&ge; 20.0.0</td></tr>
+      <tr><td>Package manager</td><td>npm / yarn / pnpm — latest</td></tr>
+      <tr><td>Memory</td><td>512MB+ recommended</td></tr>
+    </table>
+
+    <!-- ===== PACKAGE.JSON SETUP ===== -->
+    <div class="sec-head" style="margin-top:46px;"><span class="tag">PACKAGE.JSON SETUP</span><h2 style="font-size:24px;">Add FIXO-BAILEYS to your package.json</h2><p>Prefer managing dependencies manually? Add the package directly to your <code class="mono" style="color:var(--pink-soft);">package.json</code> file instead of running the install command.</p></div>
+
+    <p style="color:var(--muted); font-size:14px; line-height:1.75; margin:0 0 4px;">Open your project's <code class="mono" style="color:var(--pink-soft);">package.json</code>, find the <code class="mono" style="color:var(--pink-soft);">dependencies</code> object, and add <code class="mono" style="color:var(--pink-soft);">fixo-baileys</code> in this exact format:</p>
+
+    <div class="code overflow-x"><div class="code-head"><i></i><i></i><i></i></div>
+<pre>{
+  <span class="s">"name"</span>: <span class="s">"my-whatsapp-bot"</span>,
+  <span class="s">"version"</span>: <span class="s">"1.0.0"</span>,
+  <span class="s">"main"</span>: <span class="s">"index.js"</span>,
+  <span class="s">"type"</span>: <span class="s">"module"</span>,
+  <span class="s">"dependencies"</span>: {
+    <span class="k">"fixo-baileys"</span>: <span class="s">"^1.0.1"</span>,
+    <span class="s">"pino"</span>: <span class="s">"^9.0.0"</span>
+  }
+}</pre>
+    </div>
+
+    <table>
+      <tr><th>Field</th><th>Value</th><th>Meaning</th></tr>
+      <tr><td><code>"fixo-baileys"</code></td><td><code>"^1.0.1"</code></td><td>Package name and version range</td></tr>
+      <tr><td><code>^</code></td><td>Caret prefix</td><td>Auto-updates to any <b>1.x.x</b> release (safe minor &amp; patch updates)</td></tr>
+      <tr><td><code>"type"</code></td><td><code>"module"</code></td><td>Required if you use ESM <code>import</code> syntax</td></tr>
+    </table>
+
+    <div class="note">⚠️ <b>Important:</b> Each line inside <code class="mono" style="color:var(--pink-soft);">dependencies</code> except the last must end with a comma. Missing commas are the #1 cause of JSON parse errors.</div>
+
+    <div class="sec-head" style="margin-top:36px;"><span class="tag">AFTER EDITING</span><h2 style="font-size:22px;">Install from your updated package.json</h2><p>Once the entry is saved, run the install command — your package manager reads <code class="mono" style="color:var(--pink-soft);">package.json</code> and pulls the exact version listed.</p></div>
+
+    <div class="tabs">
+      <div class="tab on" data-pm2="npm">npm</div>
+      <div class="tab" data-pm2="yarn">yarn</div>
+      <div class="tab" data-pm2="pnpm">pnpm</div>
+    </div>
+    <div class="code"><div class="code-head"><i></i><i></i><i></i></div>
+      <pre id="pmCode2">npm install</pre>
+    </div>
+
+    <table>
+      <tr><th>Version Range</th><th>Behaviour</th></tr>
+      <tr><td><code>"^1.0.1"</code></td><td>✅ Recommended — accepts <code>1.0.1</code> up to <code>&lt;2.0.0</code></td></tr>
+      <tr><td><code>"~1.0.1"</code></td><td>Accepts patch updates only (<code>1.0.x</code>)</td></tr>
+      <tr><td><code>"1.0.1"</code></td><td>Locks to that exact version</td></tr>
+      <tr><td><code>"*"</code></td><td>⚠️ Not recommended — any version, may break</td></tr>
+    </table>
+
+    <div class="sec-head" style="margin-top:36px;"><span class="tag">IMPORT IT</span><h2 style="font-size:22px;">Use it in your code</h2><p>Once installed, import it just like the original Baileys package.</p></div>
+    <div class="code overflow-x"><div class="code-head"><i></i><i></i><i></i></div>
+<pre><span class="k">import</span> makeWASocket, { useMultiFileAuthState, DisconnectReason } <span class="k">from</span> <span class="s">'fixo-baileys'</span></pre>
+    </div>
+
+    <div class="note">💡 <b>Tip:</b> Always run your install command after editing <code class="mono" style="color:var(--pink-soft);">package.json</code> so the new dependency is downloaded into <code class="mono" style="color:var(--pink-soft);">node_modules</code>. Commit <code class="mono" style="color:var(--pink-soft);">package.json</code> and <code class="mono" style="color:var(--pink-soft);">package-lock.json</code> together for reproducible builds.</div>
+
+    <!-- ===== QUICK CONNECT ===== -->
+    <div class="sec-head" style="margin-top:46px;"><span class="tag">QUICK CONNECT</span><h2 style="font-size:22px;">Scan a QR code and you're live</h2></div>
+    <div class="code overflow-x"><div class="code-head"><i></i><i></i><i></i></div>
+<pre><span class="k">import</span> makeWASocket, { useMultiFileAuthState } <span class="k">from</span> <span class="s">'fixo-baileys'</span>
+<span class="k">import</span> P <span class="k">from</span> <span class="s">'pino'</span>
+
+<span class="k">async function</span> bootUp() {
+  <span class="k">const</span> { state, saveCreds } = <span class="k">await</span> useMultiFileAuthState(<span class="s">'fixo_session'</span>)
+
+  <span class="k">const</span> sock = makeWASocket({
+    auth: state,
+    logger: P({ level: <span class="s">'silent'</span> }),
+    printQRInTerminal: <span class="k">true</span>,
+    browser: [<span class="s">'FIXO-BAILEYS'</span>, <span class="s">'Chrome'</span>, <span class="s">'1.0.0'</span>]
+  })
+
+  sock.ev.on(<span class="s">'creds.update'</span>, saveCreds)
+  sock.ev.on(<span class="s">'connection.update'</span>, ({ connection }) => {
+    <span class="k">if</span> (connection === <span class="s">'open'</span>) console.log(<span class="s">'FIXO-BAILEYS is live!'</span>)
+  })
+}
+
+bootUp()</pre>
+    </div>
+  </section>
+
+  <!-- DOCS -->
+  <section class="page" id="page-docs">
+    <div class="sec-head"><span class="tag">API CHEATSHEET</span><h2>Pair by phone number</h2><p>No QR scanner handy? Request a pairing code instead.</p></div>
+    <div class="code overflow-x"><div class="code-head"><i></i><i></i><i></i></div>
+<pre><span class="k">if</span> (!sock.authState.creds.registered) {
+  <span class="k">const</span> phone = <span class="s">'94xxxxxxxxx'</span>
+  <span class="k">const</span> code  = <span class="k">await</span> sock.requestPairingCode(phone)
+  console.log(<span class="s">'Pairing code:'</span>, code)
+}</pre>
+    </div>
+
+    <div class="sec-head" style="margin-top:36px;"><span class="tag">RESILIENCE</span><h2 style="font-size:22px;">Auto-reconnect with backoff</h2></div>
+    <div class="code overflow-x"><div class="code-head"><i></i><i></i><i></i></div>
+<pre>sock.ev.on(<span class="s">'connection.update'</span>, ({ connection, lastDisconnect }) => {
+  <span class="k">if</span> (connection === <span class="s">'close'</span>) {
+    <span class="k">const</span> code  = lastDisconnect?.error?.output?.statusCode
+    <span class="k">const</span> retry = code !== DisconnectReason.loggedOut
+    <span class="k">if</span> (retry) setTimeout(resilientConnect, <span class="s">3000</span>)
+  }
+})</pre>
+    </div>
+    <p style="color:var(--muted); font-size:14px; margin-top:28px;">Full event reference, button templates and channel-media helpers are documented on the <a href="https://www.npmjs.com/package/fixo-baileys" target="_blank" rel="noopener" style="color:var(--pink-soft); font-weight:700;">npm package page ↗</a>.</p>
+  </section>
+
+  <!-- CONNECT -->
+  <section class="page" id="page-connect">
+    <div class="sec-head"><span class="tag">TALK TO FIXO DEV</span><h2>Get support, updates &amp; releases</h2><p>Reach out directly or follow along on our channels.</p></div>
+    <div class="connect-grid" id="connectGrid"></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="flinks">
+    <a href="https://www.npmjs.com/package/fixo-baileys" target="_blank" rel="noopener">npm</a>
+    <a href="https://t.me/DARK_DEV_OFC" target="_blank" rel="noopener">Telegram</a>
+    <a href="https://whatsapp.com/channel/0029Vb8c75l1SWstC9vY7c37" target="_blank" rel="noopener">WhatsApp Channel</a>
+    <a href="https://youtube.com/@fixo_modz?si=Z0c__D8LodyMJf25" target="_blank" rel="noopener">YouTube</a>
+    <a href="https://wa.me/94703945265" target="_blank" rel="noopener">Message</a>
+  </div>
+  © 2026 FIXO DEV · FIXO-BAILEYS is an independent project, not affiliated with WhatsApp Inc.
+</footer>
+
+<button id="aiBtn" aria-label="Open AI assistant">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z" fill="currentColor"/><path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14z" fill="currentColor"/></svg>
+</button>
+
+<div id="aiPanel">
+  <div class="ai-head">
+    <div class="t"><span class="pulse"></span> FIXO AI</div>
+    <button id="aiClose" aria-label="Close">✕</button>
+  </div>
+  <div id="aiMsgs"></div>
+  <form id="aiForm">
+    <input id="aiInput" type="text" placeholder="Ask about FIXO-BAILEYS…" autocomplete="off">
+    <button type="submit" aria-label="Send">➤</button>
+  </form>
+</div>
+
+<script>
+// ---------- loader ----------
+window.addEventListener('load', () => {
+  setTimeout(() => document.getElementById('loader').classList.add('hide'), 900);
+});
+
+// ---------- routing ----------
+const pages = ['home','features','install','docs','connect'];
+function route(){
+  let p = (location.hash || '#home').slice(1);
+  if(!pages.includes(p)) p = 'home';
+  pages.forEach(id => document.getElementById('page-'+id).classList.toggle('active', id===p));
+  document.querySelectorAll('.navlinks a').forEach(a => a.classList.toggle('active', a.dataset.p===p));
+  document.getElementById('navLinks').classList.remove('show');
+  window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
+}
+window.addEventListener('hashchange', route);
+route();
+document.getElementById('navToggle').addEventListener('click', () => document.getElementById('navLinks').classList.toggle('show'));
+
+// ---------- features data ----------
+const FEATURES = [
+  ['2GB Streaming','Push massive media files without ever blowing up RAM.'],
+  ['Turbo Performance','Built to fly even on low-tier, budget hosting.'],
+  ['Rich Buttons','Buttons, lists and templates — the full interactive API.'],
+  ['Channel Media','Push images, video, audio and docs straight into Channels.'],
+  ['Instant Replies','A zero-lag message pipeline for real-time bots.'],
+  ['Multi-Device','Full WhatsApp Multi-Device and Web support.'],
+  ['Signal Protocol','Military-grade end-to-end encryption, on by default.'],
+  ['Dual Connect','Pair with a QR code or a plain pairing code.'],
+  ['Auto-Reconnect','Smart reconnection with exponential backoff.'],
+  ['Multi-File Auth','File-based auth state, or bring your own store.'],
+  ['Plugin Ready','A clean core that is easy to extend with custom handlers.'],
+  ['WebSocket Events','A full event emitter for every real-time update.'],
+];
+const ICONS = ['M4 4h16v12H7l-3 3V4z','M13 2 3 14h7l-1 8 11-13h-7l1-7z','M4 6h16M4 12h10M4 18h7','M3 8l9 6 9-6M4 5h16v14H4z','M12 2a10 10 0 100 20 10 10 0 000-20zm0 5v5l3 3','M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z','M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z','M6 3h12l-6 8 6 10H6l6-10z','M4 12a8 8 0 1114 5.3M4 12l3-3M4 12l3 3','M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z','M9 6a3 3 0 116 0v2a5 5 0 015 5v3H4v-3a5 5 0 015-5V6z','M4 6h16v4H4zM4 14h10v4H4z'];
+const grid = document.getElementById('featGrid');
+FEATURES.forEach((f,i)=>{
+  grid.insertAdjacentHTML('beforeend', `<div class="card"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[i]}"/></svg></div><h3>${f[0]}</h3><p>${f[1]}</p></div>`);
+});
+
+// ---------- connect cards ----------
+const CONNECTS = [
+  ['Message on WhatsApp','+94 70 394 5265','https://wa.me/94703945265','M21 11.5a8.5 8.5 0 01-12.4 7.6L4 20l1-4.5A8.5 8.5 0 1121 11.5z'],
+  ['Telegram Channel','@DARK_DEV_OFC','https://t.me/DARK_DEV_OFC','M22 3L2 11l6 2 2 6 3-4 5 4 4-16z'],
+  ['WhatsApp Channel','Follow for updates','https://whatsapp.com/channel/0029Vb8c75l1SWstC9vY7c37','M21 11.5a8.5 8.5 0 01-12.4 7.6L4 20l1-4.5A8.5 8.5 0 1121 11.5z'],
+  ['YouTube Channel','@fixo_modz','https://youtube.com/@fixo_modz?si=Z0c__D8LodyMJf25','M23 12s0-3.5-.4-5a3 3 0 00-2.1-2.1C18.9 4.5 12 4.5 12 4.5s-6.9 0-8.5.4A3 3 0 001.4 7C1 8.5 1 12 1 12s0 3.5.4 5a3 3 0 002.1 2.1c1.6.4 8.5.4 8.5.4s6.9 0 8.5-.4a3 3 0 002.1-2.1c.4-1.5.4-5 .4-5zM10 15.5v-7l6 3.5z'],
+];
+const cg = document.getElementById('connectGrid');
+CONNECTS.forEach(c=>{
+  cg.insertAdjacentHTML('beforeend', `<a class="conn-card" href="${c[2]}" target="_blank" rel="noopener"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${c[3]}"/></svg></div><div><h3>${c[0]}</h3><span>${c[1]}</span></div></a>`);
+});
+
+// ---------- install tabs (command style) ----------
+const PM = {npm:'npm install fixo-baileys', yarn:'yarn add fixo-baileys', pnpm:'pnpm add fixo-baileys'};
+document.querySelectorAll('.tab[data-pm]').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab[data-pm]').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('pmCode').textContent = PM[t.dataset.pm];
+  });
+});
+
+// ---------- package.json tabs (install style) ----------
+const PM2 = {npm:'npm install', yarn:'yarn install', pnpm:'pnpm install'};
+document.querySelectorAll('.tab[data-pm2]').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab[data-pm2]').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('pmCode2').textContent = PM2[t.dataset.pm2];
+  });
+});
+
+// ---------- AI chat ----------
+const OPENROUTER_KEY = "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";
+const SYSTEM_PROMPT = `You are FIXO AI, the assistant embedded on the FIXO-BAILEYS website. FIXO-BAILEYS is a privacy-first, tracker-free fork of the Baileys WhatsApp Web API library for Node.js (npm package "fixo-baileys", v1.0.1, MIT license, requires Node >=20). Key facts: 100% drop-in replacement for Baileys; Signal Protocol E2E encryption; 2GB streaming media without RAM blowups; QR code or pairing-code connection; auto-reconnect with backoff; multi-file auth state; rich interactive buttons/lists/templates; channel media support; full WebSocket event emitter; zero telemetry/trackers. Install with "npm install fixo-baileys" or add it manually to package.json inside the "dependencies" object as: "fixo-baileys": "^1.0.1" (the caret ^ allows safe 1.x.x auto-updates), then run "npm install". npm page: https://www.npmjs.com/package/fixo-baileys. The developer, FIXO DEV, can be reached on WhatsApp (+94703945265), Telegram (https://t.me/DARK_DEV_OFC), WhatsApp Channel and YouTube (@fixo_modz).
+
+STRICT RULE: You answer ONLY questions related to Baileys / FIXO-BAILEYS, WhatsApp bot development using this library, installation, package.json setup, pairing, features, or contacting FIXO DEV. If the user asks about anything else (general chat, other libraries, other topics, personal questions, etc.), politely refuse with a short message like "I can only answer questions about FIXO-BAILEYS 💗" and steer them back. Never answer off-topic questions even if asked nicely. Keep answers short, friendly and precise.`;
+
+const aiBtn = document.getElementById('aiBtn');
+const aiPanel = document.getElementById('aiPanel');
+const aiMsgs = document.getElementById('aiMsgs');
+const aiForm = document.getElementById('aiForm');
+const aiInput = document.getElementById('aiInput');
+let history = [];
+let greeted = false;
+
+function addMsg(role, text){
+  const d = document.createElement('div');
+  d.className = 'msg ' + (role==='user' ? 'user' : 'bot');
+  d.textContent = text;
+  aiMsgs.appendChild(d);
+  aiMsgs.scrollTop = aiMsgs.scrollHeight;
+  return d;
+}
+
+aiBtn.addEventListener('click', ()=>{
+  aiPanel.classList.toggle('open');
+  if(!greeted){
+    greeted = true;
+    addMsg('bot', "Hey! I'm FIXO AI 💗 Ask me anything about FIXO-BAILEYS — install, package.json setup, pairing, features, or how to reach FIXO DEV.");
+  }
+});
+document.getElementById('aiClose').addEventListener('click', ()=> aiPanel.classList.remove('open'));
+
+aiForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const text = aiInput.value.trim();
+  if(!text) return;
+  addMsg('user', text);
+  history.push({role:'user', content:text});
+  aiInput.value = '';
+
+  const typing = document.createElement('div');
+  typing.className = 'msg bot typing';
+  typing.innerHTML = '<i></i><i></i><i></i>';
+  aiMsgs.appendChild(typing);
+  aiMsgs.scrollTop = aiMsgs.scrollHeight;
+
+  try{
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer ' + OPENROUTER_KEY,
+        'HTTP-Referer': location.href || 'https://fixo-baileys.dev',
+        'X-Title':'FIXO-BAILEYS Site'
+      },
+      body: JSON.stringify({
+        model:'openai/gpt-4o-mini',
+        messages:[{role:'system', content:SYSTEM_PROMPT}, ...history],
+        max_tokens:400
+      })
+    });
+    const data = await res.json();
+    typing.remove();
+    const reply = data?.choices?.[0]?.message?.content?.trim() || "Sorry, I couldn't reach the AI service just now — try again in a moment.";
+    addMsg('bot', reply);
+    history.push({role:'assistant', content:reply});
+  }catch(err){
+    typing.remove();
+    addMsg('bot', "Connection hiccup — couldn't reach the AI service. Please try again.");
+  }
+});
+</script>
+</body>
+</html>
