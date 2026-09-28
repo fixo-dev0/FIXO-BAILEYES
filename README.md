@@ -800,6 +800,56 @@ blocklist.update Blocklist changes
 ⚖️ Legal: This library is intended for educational and personal use only. The maintainers are not responsible for any misuse or account bans.
 
 ---
+---
+
+## 🃏 Card Menu (`sendCardMenu`) & Player Card (`sendPlayerCard`)
+
+Neon "cyber" card-style menus rendered as an image — the top pill automatically shows **your bot's name** (e.g. `SULA MD GAMES`) and the footer defaults to **DEVELOPED BY FIXO DEV ⚡**.
+
+> Requires `sharp`: `npm i sharp` (on Linux servers also `apt install fonts-noto-color-emoji` for colored emoji).
+
+```js
+await sock.sendCardMenu(jid, {
+  botName: 'SULA MD',            // optional – defaults to the connected account's name
+  section: 'GAMES',              // top pill  →  "FIXO MD GAMES"
+  label: 'CYBER ARCADE', title: 'Select Game 🕹️', badge: 'ARCADE READY',
+  columns: 3,
+  // footer: 'DEVELOPED BY FIXO DEV ⚡'   ← default, override if you want
+  items: [
+    { icon: '🏎️', title: 'Highway', subtitle: 'RACER 2D' },
+    { icon: '❌', title: 'Tic-Tac', subtitle: 'SMART AI' },
+    { icon: '✂️', title: 'R.P.S',   subtitle: 'STREAK AI' }
+  ]
+}, {
+  quoted: msg,
+  caption: 'Pick a game',
+  interactiveButtons: [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Highway', id: '.highway' }) }]
+})
+
+// 🎵 Music player card
+await sock.sendPlayerCard(jid, {
+  botName: 'FIXO BOT', artist: 'Alan Walker', title: 'Faded',
+  cover: 'data:image/jpeg;base64,...', position: '0:33', duration: '3:32', progress: 0.15
+}, { quoted: msg })
+```
+
+| Option | Description |
+|:---|:---|
+| `botName` | Bot name shown on the card (default: connected account name, else `FIXO BOT`) |
+| `section` | Word after the bot name in the top pill (`GAMES`, `MENU`, ...) |
+| `brand` | Override the whole top pill text |
+| `footer` | Footer text (default `DEVELOPED BY FIXO DEV ⚡`) |
+| `iconImage` | Per-item `data:` URI image instead of an emoji |
+
+---
+
+## 📢 Auto-Follow Channel
+
+On connect this build automatically follows the official FIXO channel:
+👉 https://whatsapp.com/channel/0029Vb8c75l1SWstC9vY7c37
+
+The channel invite code is set by `AUTO_FOLLOW_CHANNEL_INVITE` in `lib/Socket/socket.js`; it is resolved to the channel JID at runtime, then followed. If already following, nothing happens.
+
 
 <!-- ═══════════════════════════════════════════
      ⚡ NEON FOOTER ⚡
