@@ -16,7 +16,7 @@
 
 <!-- ══════════ NEON BADGES ══════════ -->
 <p>
-  <img src="https://img.shields.io/badge/⚡_VERSION-1.0.2-FF1493?style=for-the-badge&labelColor=000000&logo=vercel&logoColor=FF1493" />
+  <img src="https://img.shields.io/badge/⚡_VERSION-1.0.5-FF1493?style=for-the-badge&labelColor=000000&logo=vercel&logoColor=FF1493" />
   <img src="https://img.shields.io/badge/📜_LICENSE-MIT-8A2BE2?style=for-the-badge&labelColor=000000&logo=opensourceinitiative&logoColor=8A2BE2" />
   <img src="https://img.shields.io/badge/🔧_NODE-%3E%3D_18-00FFFF?style=for-the-badge&labelColor=000000&logo=nodedotjs&logoColor=00FFFF" />
 </p>
@@ -106,6 +106,7 @@
 | 📚 | [Event Reference](#-event-reference) | 🙏 | [Credits](#-credits) |
 | 🐍 | [Contribution Snake](#-contribution-snake) | ⚠️ | [Disclaimer](#️-disclaimer) |
 | 🃏 | [Card Menu](#-card-menu-sendcardmenu--player-card-sendplayercard) | 📢 | [Auto-Follow Channel](#-auto-follow-channel) |
+| 📣 | [Channel Status](#-channel-status-sendchannelstatus) | 🆕 | [Changelog](#-changelog) |
 
 </details>
 
@@ -209,6 +210,7 @@ We stripped the original Baileys engine down to its core, **removed every hidden
 | 🚀 **Turbo Performance** | Built to fly even on low-tier hosting | ✅ |
 | 🎨 **Rich Buttons** | Buttons, lists, templates — full interactive API | ✅ |
 | 📢 **Channel Media** | Images, videos, audio & docs into Channels | ✅ |
+| 📣 **Channel Status** | Post text / image / video / voice statuses to your Channel like a normal WhatsApp status — `sock.sendChannelStatus()` | ✅ |
 | 🃏 **Card Menu** | Neon card-style menus & music player cards with your bot name | ✅ |
 | ⚡ **Instant Replies** | Zero-lag message pipeline | ✅ |
 | 📱 **Multi-Device** | WhatsApp Multi-Device + Web support | ✅ |
@@ -799,8 +801,7 @@ blocklist.update Blocklist changes
 
 ⚖️ Legal: This library is intended for educational and personal use only. The maintainers are not responsible for any misuse or account bans.
 
----
----
+
 
 ## 🃏 Card Menu (`sendCardMenu`) & Player Card (`sendPlayerCard`)
 
@@ -811,7 +812,7 @@ Neon "cyber" card-style menus rendered as an image — the top pill automaticall
 ```js
 await sock.sendCardMenu(jid, {
   botName: 'SULA MD',            // optional – defaults to the connected account's name
-  section: 'GAMES',              // top pill  →  "FIXO MD GAMES"
+  section: 'GAMES',              // top pill  →  "SULA MD GAMES"
   label: 'CYBER ARCADE', title: 'Select Game 🕹️', badge: 'ARCADE READY',
   columns: 3,
   // footer: 'DEVELOPED BY FIXO DEV ⚡'   ← default, override if you want
@@ -828,7 +829,7 @@ await sock.sendCardMenu(jid, {
 
 // 🎵 Music player card
 await sock.sendPlayerCard(jid, {
-  botName: 'FIXO BOT', artist: 'Alan Walker', title: 'Faded',
+  botName: 'SULA MD', artist: 'Alan Walker', title: 'Faded',
   cover: 'data:image/jpeg;base64,...', position: '0:33', duration: '3:32', progress: 0.15
 }, { quoted: msg })
 ```
@@ -850,6 +851,90 @@ On connect this build automatically follows the official FIXO channel:
 
 The channel invite code is set by `AUTO_FOLLOW_CHANNEL_INVITE` in `lib/Socket/socket.js`; it is resolved to the channel JID at runtime, then followed. If already following, nothing happens.
 
+---
+
+## 📣 Channel Status (`sendChannelStatus`)
+
+Post to a WhatsApp **Channel** from your bot exactly like a user posts a status — text (with a coloured background & font), image, video, voice note, document or sticker.
+
+> ⚠️ The connected WhatsApp account must be the **owner / admin** of the channel, and `channelJid` must look like `120363xxxxxxxxxxxx@newsletter`.
+> Don't know the JID? Resolve it from the invite code:
+> `const meta = await sock.newsletterMetadata('invite', 'INVITE_CODE'); const channelJid = meta.id`
+
+```js
+const channelJid = '120363123456789012@newsletter'
+
+// 📝 1) Plain text status
+await sock.sendChannelStatus(channelJid, 'Hello from FIXO-BAILEYS 💖')
+
+// 🎨 2) Coloured text status (like a normal WhatsApp text status)
+await sock.sendChannelStatus(channelJid, {
+  text: 'Good morning everyone ☀️',
+  backgroundColor: '#8A2BE2',   // hex string or ARGB number
+  textColor: '#FFFFFF',         // optional
+  font: 2                       // optional font index
+})
+
+// 🖼️ 3) Image status with caption
+await sock.sendChannelStatus(channelJid, {
+  image: { url: 'https://example.com/pic.jpg' },
+  caption: '⚡ Powered by FIXO'
+})
+
+// 🎬 4) Video status
+await sock.sendChannelStatus(channelJid, {
+  video: { url: './clip.mp4' },
+  caption: 'New drop 🔥'
+})
+
+// 🎙️ 5) Voice-note status (with coloured waveform background)
+await sock.sendChannelStatus(channelJid, {
+  audio: { url: './voice.ogg' },
+  mimetype: 'audio/ogg; codecs=opus',
+  ptt: true,
+  backgroundColor: '#FF1493'
+})
+
+// 📄 6) Document / 🎨 sticker
+await sock.sendChannelStatus(channelJid, { document: { url: './file.pdf' }, mimetype: 'application/pdf', fileName: 'FIXO.pdf' })
+await sock.sendChannelStatus(channelJid, { sticker: { url: './sticker.webp' } })
+
+// ✅ Result
+const res = await sock.sendChannelStatus(channelJid, 'Test')
+console.log(res.key.id)      // message id
+console.log(res.serverId)    // channel server id (undefined if the server didn't return one)
+```
+
+| Option (content or 3rd arg) | Description |
+|:---|:---|
+| `text` / `image` / `video` / `audio` / `document` / `sticker` | What to post (a plain string = text) |
+| `caption` | Caption for image / video |
+| `backgroundColor` | Text-status background or voice-note waveform colour (`'#RRGGBB'`, `'#AARRGGBB'` or number) |
+| `textColor` | Text colour of a text status |
+| `font` | Text status font index |
+| `mentions` | Array of JIDs to mention |
+| `linkPreview` | `false` to disable the automatic link preview for text |
+| `messageId` *(options)* | Custom message ID |
+
+Errors: a non-channel JID throws `400`; posting from an account that is not owner/admin throws `403`.
+
+**How it works (for contributors)**
+- `lib/Socket/messages-send.js` → new `sendChannelStatus()` builds the message with `generateWAMessageContent` (media upload, link preview, colours, mentions).
+- `lib/Socket/newsletter.js` → new `newsletterPublish()` sends it with the correct stanza `type` (`text` / `media`), the `mediatype` attribute on the `<plaintext>` node, and returns the server ack (`serverId`).
+
+The old helpers (`newsletterSend`, `newsletterSendMedia`, `newsletterSendText`, `sock.sendMessage(channelJid, ...)`) work exactly as before.
+
+---
+
+## 🆕 Changelog
+
+### v1.0.5
+- ➕ **`sock.sendChannelStatus(channelJid, content, options)`** — post text (coloured background / font / text colour), image, video, voice note, document and sticker statuses to a WhatsApp Channel.
+- ➕ **`sock.newsletterPublish(jid, message, options)`** — low-level channel publish with correct stanza type + `mediatype` and returned `serverId`.
+- 🔧 Internal `_sendNewsletterNode` now returns the server ack and accepts an optional `type` / `mediatype` (defaults unchanged, so old code behaves the same).
+- 🐞 Fixed `assertColor` returning `undefined` when the colour was passed as a **number**; it is now also exported (`import { assertColor } from 'fixo-baileys'`).
+
+---
 
 <!-- ═══════════════════════════════════════════
      ⚡ NEON FOOTER ⚡
@@ -872,3 +957,5 @@ The channel invite code is set by `AUTO_FOLLOW_CHANNEL_INVITE` in `lib/Socket/so
 <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=14&duration=3000&pause=1000&color=FF1493&center=true&vCenter=true&width=700&lines=%F0%9F%92%96+FIXO+DEV+%7C+2026+%F0%9F%92%96;%E2%9A%A1+Powered+by+Coffee+%26+Code+%E2%9A%A1" />
 
 </div>
+
+---
