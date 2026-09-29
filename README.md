@@ -16,7 +16,7 @@
 
 <!-- ══════════ NEON BADGES ══════════ -->
 <p>
-  <img src="https://img.shields.io/badge/⚡_VERSION-1.0.5-FF1493?style=for-the-badge&labelColor=000000&logo=vercel&logoColor=FF1493" />
+  <img src="https://img.shields.io/badge/⚡_VERSION-1.0.4-FF1493?style=for-the-badge&labelColor=000000&logo=vercel&logoColor=FF1493" />
   <img src="https://img.shields.io/badge/📜_LICENSE-MIT-8A2BE2?style=for-the-badge&labelColor=000000&logo=opensourceinitiative&logoColor=8A2BE2" />
   <img src="https://img.shields.io/badge/🔧_NODE-%3E%3D_18-00FFFF?style=for-the-badge&labelColor=000000&logo=nodedotjs&logoColor=00FFFF" />
 </p>
@@ -928,7 +928,7 @@ The old helpers (`newsletterSend`, `newsletterSendMedia`, `newsletterSendText`, 
 
 ## 🆕 Changelog
 
-### v1.0.5
+### v1.0.4
 - ➕ **`sock.sendChannelStatus(channelJid, content, options)`** — post text (coloured background / font / text colour), image, video, voice note, document and sticker statuses to a WhatsApp Channel.
 - ➕ **`sock.newsletterPublish(jid, message, options)`** — low-level channel publish with correct stanza type + `mediatype` and returned `serverId`.
 - 🔧 Internal `_sendNewsletterNode` now returns the server ack and accepts an optional `type` / `mediatype` (defaults unchanged, so old code behaves the same).
