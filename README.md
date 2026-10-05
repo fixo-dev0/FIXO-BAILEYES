@@ -845,6 +845,46 @@ await sock.sendPlayerCard(jid, {
 
 ---
 
+## 🎠 Carousel Menu (`sendCarouselMenu`)
+
+Swipeable **bot-style menu**: a header text on top and a row of cards you swipe sideways — every card has its own image and command list (e.g. *GROUP MENU*, *SETTINGS MENU*), exactly like the "RCD X MINI" style menus.
+
+```js
+await sock.sendCarouselMenu(jid, {
+  text: 'Good Morning!\n\n👉 Swipe the cards to open a category.',
+  footer: 'MY BOT • FREE CONNECTED',               // default: DEVELOPED BY FIXO DEV ⚡
+  cards: [
+    {
+      image: fs.readFileSync('./group.jpg'),        // Buffer | { url } | 'https://...'
+      title: '👥 GROUP MENU',
+      commands: ['.add', '.admins', '.kick', { cmd: '.kickall', locked: true }]   // locked → adds 🔒
+    },
+    {
+      image: { url: 'https://example.com/settings.jpg' },
+      title: '⚙️ SETTINGS MENU',
+      commands: ['.antidelete', '.autoreadstatus', '.mode'],
+      buttons: [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Open', id: '.settings' }) }]  // optional
+    }
+  ]
+}, { quoted: msg })
+```
+
+| Option | Description |
+|:---|:---|
+| `text` | Header text shown above the cards |
+| `footer` | Footer text (default `DEVELOPED BY FIXO DEV ⚡`) |
+| `cards[].image` | Card banner image (Buffer, `{ url }` or URL string) |
+| `cards[].title` | Card heading (first line of the card) |
+| `cards[].commands` | Command list; each item is a string or `{ cmd, locked }` |
+| `cards[].text` | Use instead of `commands` to give the card free text |
+| `cards[].buttons` | Optional native-flow buttons for the card |
+
+Helpers `formatCardCommands` and `normaliseCarouselCard` are exported from the package root.
+
+> Works with WhatsApp mobile apps; carousels may not render on WhatsApp Web / Desktop.
+
+---
+
 ## 📢 Auto-Follow Channel
 
 On connect this build automatically follows the official FIXO channel:
@@ -956,6 +996,9 @@ const results = getAggregatePollVotes(sock, pollMessage)
 ---
 
 ## 🆕 Changelog
+
+### v1.0.6
+- ➕ **`sock.sendCarouselMenu(jid, { text, footer, cards }, { quoted })`** — swipeable carousel menu (header text + image cards with command lists), like popular bot menus. New file `lib/Utils/carousel-menu.js`.
 
 ### v1.0.5
 - 🐞 Fixed pairing-code linking: the default code `FIXOMODZ` contained letters outside the WhatsApp code alphabet (I, O). Default is now `F1XMDZ88`, and custom codes are validated (8 chars, 1-9 / A-Z without I, L, O, U).
